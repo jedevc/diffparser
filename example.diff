@@ -55,3 +55,12 @@ index 03b9162..0000000
 @@ -1 +0,0 @@
 -symlink-destination
 \ No newline at end of file
+diff --git a/newEmpty b/newEmpty
+new file mode 100644
+index 0000000..e69de29
+diff --git a/deleteEmpty b/deleteEmpty
+deleted file mode 100644
+index 576bba8..0000000
+diff --git a/old b/new
+rename from old
+rename to new

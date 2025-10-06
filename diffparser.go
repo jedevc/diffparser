@@ -21,11 +21,27 @@ const (
 	MODIFIED
 	// NEW if the file is created and there is no diff
 	NEW
+	// RENAMED if the file is renamed
+	RENAMED
 )
+
+func (fm FileMode) String() string {
+	switch fm {
+	case DELETED:
+		return "DELETED"
+	case MODIFIED:
+		return "MODIFIED"
+	case NEW:
+		return "NEW"
+	case RENAMED:
+		return "RENAMED"
+	default:
+		return "UNKNOWN"
+	}
+}
 
 // DiffRange contains the DiffLine's
 type DiffRange struct {
-
 	// starting line number
 	Start int
 
@@ -37,7 +53,7 @@ type DiffRange struct {
 }
 
 // DiffLineMode tells the line if added, removed or unchanged
-type DiffLineMode rune
+type DiffLineMode int
 
 const (
 	// ADDED if the line is added (shown green in diff)
@@ -47,6 +63,19 @@ const (
 	// UNCHANGED if the line is unchanged (not colored in diff)
 	UNCHANGED
 )
+
+func (dlm DiffLineMode) String() string {
+	switch dlm {
+	case ADDED:
+		return "ADDED"
+	case REMOVED:
+		return "REMOVED"
+	case UNCHANGED:
+		return "UNCHANGED"
+	default:
+		return "UNKNOWN"
+	}
+}
 
 // DiffLine is the least part of an actual diff
 type DiffLine struct {
@@ -139,8 +168,6 @@ func Parse(diffString string) (*Diff, error) {
 	var ADDEDCount int
 	var REMOVEDCount int
 	var inHunk bool
-	oldFilePrefix := "--- a/"
-	newFilePrefix := "+++ b/"
 
 	var diffPosCount int
 	var firstHunkInFile bool
@@ -150,11 +177,28 @@ func Parse(diffString string) (*Diff, error) {
 		switch {
 		case strings.HasPrefix(l, "diff "):
 			inHunk = false
+			firstHunkInFile = true
 
 			// Start a new file.
-			file = &DiffFile{}
+			file = &DiffFile{
+				Mode: MODIFIED, // default is modified
+			}
+			diff.Files = append(diff.Files, file)
+
+			// Parse the filenames from the diff line.
+			if fields := strings.Fields(l); len(fields) >= 3 {
+				from, to := fields[len(fields)-2], fields[len(fields)-1]
+				if original, ok := strings.CutPrefix(from, "a/"); ok {
+					file.OrigName = original
+				}
+				if updated, ok := strings.CutPrefix(to, "b/"); ok {
+					file.NewName = updated
+				}
+			}
+
 			header := l
 			if len(lines) > idx+3 {
+				// FIXME(jedevc): this logic is pretty much entirely broken
 				rein := regexp.MustCompile(`^index .+$`)
 				remp := regexp.MustCompile(`^(-|\+){3} .+$`)
 				index := lines[idx+1]
@@ -168,19 +212,12 @@ func Parse(diffString string) (*Diff, error) {
 				}
 			}
 			file.DiffHeader = header
-			diff.Files = append(diff.Files, file)
-			firstHunkInFile = true
-
-			// File mode.
-			file.Mode = MODIFIED
-		case l == "+++ /dev/null":
+		case strings.HasPrefix(l, "deleted file "):
 			file.Mode = DELETED
-		case l == "--- /dev/null":
+		case strings.HasPrefix(l, "new file "):
 			file.Mode = NEW
-		case strings.HasPrefix(l, oldFilePrefix):
-			file.OrigName = strings.TrimPrefix(l, oldFilePrefix)
-		case strings.HasPrefix(l, newFilePrefix):
-			file.NewName = strings.TrimPrefix(l, newFilePrefix)
+		case strings.HasPrefix(l, "rename "):
+			file.Mode = RENAMED
 		case strings.HasPrefix(l, "@@ "):
 			if firstHunkInFile {
 				diffPosCount = 0

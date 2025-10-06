@@ -4,9 +4,11 @@
 package diffparser
 
 import (
+	"cmp"
 	"io/ioutil"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +21,7 @@ func setup(t *testing.T) *Diff {
 
 	diff, err := Parse(string(byt))
 	require.NoError(t, err)
-	require.Equal(t, len(diff.Files), 6)
+	require.Equal(t, len(diff.Files), 9)
 
 	return diff
 }
@@ -38,34 +40,51 @@ func TestFileModeAndNaming(t *testing.T) {
 		{
 			mode:     DELETED,
 			origName: "file2",
-			newName:  "",
+			newName:  "file2",
 		},
 		{
 			mode:     DELETED,
 			origName: "file3",
-			newName:  "",
+			newName:  "file3",
 		},
 		{
 			mode:     NEW,
-			origName: "",
+			origName: "file4",
 			newName:  "file4",
 		},
 		{
 			mode:     NEW,
-			origName: "",
+			origName: "newname",
 			newName:  "newname",
 		},
 		{
 			mode:     DELETED,
 			origName: "symlink",
-			newName:  "",
+			newName:  "symlink",
+		},
+
+		{
+			mode:     NEW,
+			origName: "newEmpty",
+			newName:  "newEmpty",
+		},
+		{
+			mode:     DELETED,
+			origName: "deleteEmpty",
+			newName:  "deleteEmpty",
+		},
+		{
+			mode:     RENAMED,
+			origName: "old",
+			newName:  "new",
 		},
 	} {
 		file := diff.Files[i]
-		t.Logf("testing file: %v", file)
-		require.Equal(t, expected.mode, file.Mode)
-		require.Equal(t, expected.origName, file.OrigName)
-		require.Equal(t, expected.newName, file.NewName)
+		t.Run(cmp.Or(expected.origName, expected.newName), func(t *testing.T) {
+			assert.Equal(t, expected.mode.String(), file.Mode.String())
+			assert.Equal(t, expected.origName, file.OrigName)
+			assert.Equal(t, expected.newName, file.NewName)
+		})
 	}
 }
 

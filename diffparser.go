@@ -110,10 +110,6 @@ type Diff struct {
 	PullID uint `sql:"index"`
 }
 
-func (d *Diff) addFile(file *DiffFile) {
-	d.Files = append(d.Files, file)
-}
-
 // Changed returns a map of filename to lines changed in that file. Deleted
 // files are ignored.
 func (d *Diff) Changed() map[string][]int {
@@ -134,11 +130,6 @@ func (d *Diff) Changed() map[string][]int {
 	}
 
 	return dFiles
-}
-
-func regFind(s string, reg string, group int) string {
-	re := regexp.MustCompile(reg)
-	return re.FindStringSubmatch(s)[group]
 }
 
 func lineMode(line string) (*DiffLineMode, error) {

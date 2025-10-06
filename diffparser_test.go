@@ -5,7 +5,7 @@ package diffparser
 
 import (
 	"cmp"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ import (
 // chars), and diffed files that are not in the current directory.
 
 func setup(t *testing.T) *Diff {
-	byt, err := ioutil.ReadFile("example.diff")
+	byt, err := os.ReadFile("example.diff")
 	require.NoError(t, err)
 
 	diff, err := Parse(string(byt))
